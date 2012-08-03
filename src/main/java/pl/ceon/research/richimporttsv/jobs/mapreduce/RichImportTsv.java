@@ -31,7 +31,7 @@ import pl.ceon.research.richimporttsv.io.SeparatorRecordReader;
 public class RichImportTsv extends ImportTsv {
 
     public static String ROWKEY_COLUMN_SPEC = "HBASE_ROW_KEY";
-    final static String NAME = RichImportTsv.class.getPackage() + "." + RichImportTsv.class.getName();
+    final static String NAME = RichImportTsv.class.getName();
     final static String INPUT_FORMAT_CONF_KEY = "importtsv.input.format.class";
     final static String MAPPER_CONF_KEY = "importtsv.mapper.class";
     final static String SKIP_LINES_CONF_KEY = "importtsv.skip.bad.lines";
