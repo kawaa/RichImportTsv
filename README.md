@@ -17,9 +17,6 @@ echo "KEY1.VALUE#KEY2.VALUE2#KEY3.VALUE3a" > richinput/hash_dot.dat
 echo "VALUE3b#KEY4.VALUE4" >> richinput/hash_dot.dat 
 # put input data to HDFS
 hadoop fs -put richinput .
-
-# download jar
-wget https://github.com/kawaa/RichImportTsv/blob/master/RichImportTsv-1.0.jar
 ```
 
 ### Load data via Puts (i.e. non-bulk loading):
