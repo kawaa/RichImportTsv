@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>pl.ceon.research</groupId>
-    <artifactId>RichImportTSV</artifactId>
+    <artifactId>RichImportTsv</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -27,8 +27,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     
-  
-
     <dependencies>    
         <dependency>
             <groupId>junit</groupId>
@@ -55,7 +53,7 @@
 		below. -->
                 
         <dependency>
-            <groupId>pl.ceon.research</groupId>
+            <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-2.0.0-mr1-cdh4.0.1-test</artifactId>
             <version>2.0.0-mr1-cdh4.0.1</version>
             <scope>system</scope>
@@ -63,28 +61,28 @@
         </dependency>
         
         <dependency>
-            <groupId>pl.ceon.research</groupId>
+            <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-0.92.1-cdh4.0.1-tests</artifactId>
             <version>0.92.1-cdh4.0.1</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/hbase-0.92.1-cdh4.0.1-tests.jar</systemPath>
         </dependency>
         <dependency>
-            <groupId>pl.ceon.research</groupId>
+            <groupId>org.apache.pig</groupId>
             <artifactId>pigunit-0.9.2-cdh4.0.1</artifactId>
             <version>0.9.2-cdh4.0.1</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/pigunit-0.9.2-cdh4.0.1.jar</systemPath>
         </dependency>
         <dependency>
-            <groupId>pl.ceon.research</groupId>
+            <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs-2.0.0-cdh4.0.1-tests</artifactId>
             <version>2.0.0-cdh4.0.1</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/hadoop-hdfs-2.0.0-cdh4.0.1-tests.jar</systemPath>
         </dependency>
         <dependency>
-            <groupId>pl.ceon.research</groupId>
+            <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common-2.0.0-cdh4.0.1-tests</artifactId>
             <version>2.0.0-cdh4.0.1</version>
             <scope>system</scope>
@@ -92,7 +90,7 @@
         </dependency>
         
                 <dependency>
-            <groupId>pl.ceon.research</groupId>
+            <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-0.92.1-cdh4.0.1-security-tests</artifactId>
             <version>0.92.1-cdh4.0.1</version>
             <scope>system</scope>
