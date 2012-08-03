@@ -46,8 +46,6 @@ hbase org.apache.hadoop.hbase.io.hfile.HFile -v -p -f richoutput/cf/a3caf62794f4
 
 RichImportTsv internally uses SeparatorInputFormat in order to read records separated by any separator (not only new line as TextInputFormat does). It is based on implementation code and description presented at http://blog.rguha.net/?p=293. We extended the code by adding paramter (i.e. record.separator) to specify a separator and caluclating the progress of reading.
 
-#### Quick Example
-
 ```
 hadoop jar RichImportTsv-1.0.jar pl.ceon.research.richimporttsv.jobs.mapreduce.TextLiner -libjars RichImportTsv-1.0.jar,/usr/lib/hbase/hbase.jar -Drecord.separator=# richinput/hash_dot.dat textliner-output/
 hadoop fs -cat textliner-output/part-m-00000
