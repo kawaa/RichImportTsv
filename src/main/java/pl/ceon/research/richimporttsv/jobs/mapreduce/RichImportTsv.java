@@ -56,7 +56,7 @@ public class RichImportTsv extends ImportTsv {
     public static Job createSubmittableJob(Configuration conf, String[] args) throws IOException, ClassNotFoundException {
 
         Job job = ImportTsv.createSubmittableJob(conf, args);
-        
+
         // See if a non-default InputFormat was set
         String inputFormatClassName = conf.get(INPUT_FORMAT_CONF_KEY);
         Class inputFormatClass = inputFormatClassName != null ? Class.forName(inputFormatClassName) : DEFAULT_INPUT_FORMAT;
@@ -114,6 +114,11 @@ public class RichImportTsv extends ImportTsv {
      * @param args The command line parameters.
      * @throws Exception When running the job fails.
      */
+    public static void main(String[] args) throws Exception {
+        main(HBaseConfiguration.create(), args);
+    }
+
+   
     public static void main(Configuration conf, String[] args) throws Exception {
         if (conf == null) {
             conf = HBaseConfiguration.create();
