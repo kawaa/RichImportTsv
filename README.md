@@ -19,7 +19,7 @@ echo "VALUE3b#KEY4.VALUE4" >> richinput/hash_dot.dat
 hadoop fs -put richinput .
 
 # download jar
-wget https://github.com/kawaa/RichImportTsv/blob/master/RichImportTsv-1.0-SNAPSHOT.jar
+wget https://github.com/kawaa/RichImportTsv/blob/master/RichImportTsv-1.0.jar
 ```
 
 ### Load data via Puts (i.e. non-bulk loading):
@@ -27,7 +27,7 @@ wget https://github.com/kawaa/RichImportTsv/blob/master/RichImportTsv-1.0-SNAPSH
 # create the target table
 echo "create 'tab', 'cf'" | hbase shell
 # run the application
-hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0-SNAPSHOT.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq tab richinput/hash_dot.dat
+hadoop jar RichImportTsv-1.0.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq tab richinput/hash_dot.dat
 # scan the results
 echo "scan 'tab'" | hbase shell
 ```
@@ -36,7 +36,7 @@ echo "scan 'tab'" | hbase shell
 Use -Dimporttsv.bulk.output
 ```
 # run the application
-hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0-SNAPSHOT.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq -Dimporttsv.bulk.output=richoutput tab richinput/hash_dot.dat
+hadoop jar RichImportTsv-1.0.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq -Dimporttsv.bulk.output=richoutput tab richinput/hash_dot.dat
 # scan the results
 hadoop fs -ls richoutput/cf/
 hbase org.apache.hadoop.hbase.io.hfile.HFile -v -p -f richoutput/cf/a3caf62794f44eb6b3d99c083faa65da
