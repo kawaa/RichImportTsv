@@ -17,6 +17,9 @@ echo "KEY1.VALUE#KEY2.VALUE2#KEY3.VALUE3a" > richinput/hash_dot.dat
 echo "VALUE3b#KEY4.VALUE4" >> richinput/hash_dot.dat 
 # put input data to HDFS
 hadoop fs -put richinput .
+
+# download the jar
+wget -O RichImportTsv-1.0.jar 'https://github.com/kawaa/RichImportTsv/blob/master/RichImportTsv-1.0.jar?raw=true'
 ```
 
 ### Load data via Puts (i.e. non-bulk loading):
@@ -30,7 +33,7 @@ echo "scan 'tab'" | hbase shell
 ```
 
 ### Generate StoreFiles for bulk-loading:
-Use -Dimporttsv.bulk.output
+Use -Dimporttsv.bulk.output=output_dir option.
 ```
 # run the application
 hadoop jar RichImportTsv-1.0.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq -Dimporttsv.bulk.output=richoutput tab richinput/hash_dot.dat
