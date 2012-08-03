@@ -3,7 +3,7 @@ RichImportTsv
 
 ## About
 RichImportTsv is build on top of ImportTsv and loads data into HBase. 
-It enhances the usage of ImportTsv and allows you to load data where records are separated by any separators (not only new line as it is hard-coded in ImportTsv). A non-default record speparator can be specified using -Dimporttsv.record.separator=<separator>. RichImportTsv internally uses SeparatorInputFormat (can be changed using -Dimporttsv.input.format.class=<input_format_class>).
+It enhances the usage of ImportTsv and allows you to load data where records are separated by any separators (not only new line as it is hard-coded in ImportTsv). A non-default record speparator can be specified using -Dimporttsv.record.separator=separator. RichImportTsv internally uses SeparatorInputFormat (can be changed using -Dimporttsv.input.format.class=input_format_class).
 
 ## Quick Start
 
@@ -27,7 +27,17 @@ wget https://github.com/kawaa/RichImportTsv/blob/master/RichImportTsv-1.0-SNAPSH
 # create the target table
 echo "create 'tab', 'cf'" | hbase shell
 # run the application
-hadoop jar RichImportTSV-1.0-SNAPSHOT.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTSV-1.0-SNAPSHOT.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq tab richinput/hash_dot.dat
-# scan the table
+hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0-SNAPSHOT.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq tab richinput/hash_dot.dat
+# scan the results
 echo "scan 'tab'" | hbase shell
+```
+
+### Generate StoreFiles for bulk-loading:
+Use -Dimporttsv.bulk.output
+```
+# run the application
+hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0-SNAPSHOT.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq -Dimporttsv.bulk.output=richoutput tab richinput/hash_dot.dat
+# scan the results
+hadoop fs -ls richoutput/cf/
+hbase org.apache.hadoop.hbase.io.hfile.HFile -v -p -f richoutput/cf/a3caf62794f44eb6b3d99c083faa65da
 ```
