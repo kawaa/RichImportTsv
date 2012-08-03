@@ -19,7 +19,7 @@ echo "VALUE3b#KEY4.VALUE4" >> richinput/hash_dot.dat
 hadoop fs -put richinput .
 
 # download the jar
-wget -O RichImportTsv-1.0.jar 'https://github.com/kawaa/RichImportTsv/blob/master/RichImportTsv-1.0.jar?raw=true'
+wget -O RichImportTsv-1.0-SNAPSHOT.jar 'https://github.com/kawaa/RichImportTsv/blob/master/RichImportTsv-1.0-SNAPSHOT.jar?raw=true'
 ```
 
 ### Load data via Puts (i.e. non-bulk loading):
@@ -27,7 +27,7 @@ wget -O RichImportTsv-1.0.jar 'https://github.com/kawaa/RichImportTsv/blob/maste
 # create the target table
 echo "create 'tab', 'cf'" | hbase shell
 # run the application
-hadoop jar RichImportTsv-1.0.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq tab richinput/hash_dot.dat
+hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.edu.icm.coansys.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0-SNAPSHOT.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq tab richinput/hash_dot.dat
 # scan the results
 echo "scan 'tab'" | hbase shell
 ```
@@ -36,7 +36,7 @@ echo "scan 'tab'" | hbase shell
 Use -Dimporttsv.bulk.output=output_dir option.
 ```
 # run the application
-hadoop jar RichImportTsv-1.0.jar pl.ceon.research.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq -Dimporttsv.bulk.output=richoutput tab richinput/hash_dot.dat
+hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.edu.icm.coansys.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0-SNAPSHOT.jar -Dimporttsv.record.separator=# -Dimporttsv.separator=. -Dimporttsv.columns=HBASE_ROW_KEY,cf:cq -Dimporttsv.bulk.output=richoutput tab richinput/hash_dot.dat
 # scan the results
 hadoop fs -ls richoutput/cf/
 hbase org.apache.hadoop.hbase.io.hfile.HFile -v -p -f richoutput/cf/a3caf62794f44eb6b3d99c083faa65da
@@ -47,6 +47,6 @@ hbase org.apache.hadoop.hbase.io.hfile.HFile -v -p -f richoutput/cf/a3caf62794f4
 RichImportTsv internally uses SeparatorInputFormat in order to read records separated by any separator (not only new line as TextInputFormat does). It is based on implementation code and description presented at http://blog.rguha.net/?p=293. We extended the code by adding paramter (i.e. record.separator) to specify a separator and caluclating the progress of reading.
 
 ```
-hadoop jar RichImportTsv-1.0.jar pl.ceon.research.richimporttsv.jobs.mapreduce.TextLiner -libjars RichImportTsv-1.0.jar,/usr/lib/hbase/hbase.jar -Drecord.separator=# richinput/hash_dot.dat textliner-output/
+hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.edu.icm.coansys.richimporttsv.jobs.mapreduce.TextLiner -libjars RichImportTsv-1.0-SNAPSHOT.jar,/usr/lib/hbase/hbase.jar -Drecord.separator=# richinput/hash_dot.dat textliner-output/
 hadoop fs -cat textliner-output/part-m-00000
 ```

@@ -10,7 +10,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package pl.ceon.research.richimporttsv.jobs.mapreduce;
+package pl.edu.icm.coansys.richimporttsv.jobs.mapreduce;
 
 
 
@@ -21,7 +21,6 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
-import org.junit.Test;
 import static org.junit.Assert.*;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -44,7 +43,6 @@ public class TestRichImportTsv extends GenericTestCase{
         String inputFileName = "InputFile.dat";
 
         String[] args = new String[]{
-            "-Dimporttsv.input.format.class=pl.ceon.research.richimporttsv.io.SeparatorInputFormat",
             "-Dimporttsv.record.separator=#",
             "-Dimporttsv.separator=$",
             "-Dimporttsv.columns=HBASE_ROW_KEY," + COLUMN_FAMILY_NAME + ":" + COLUMN_QUALIFIER_NAME,
@@ -76,7 +74,6 @@ public class TestRichImportTsv extends GenericTestCase{
 
         // Prepare the arguments required for the test.
         String[] args = new String[]{
-            "-Dimporttsv.input.format.class=pl.ceon.research.richimporttsv.io.SeparatorInputFormat",
             "-Dimporttsv.record.separator=#",
             "-Dimporttsv.separator=$",
             "-Dimporttsv.columns=HBASE_ROW_KEY," + COLUMN_FAMILY_NAME + ":" + COLUMN_QUALIFIER_NAME,

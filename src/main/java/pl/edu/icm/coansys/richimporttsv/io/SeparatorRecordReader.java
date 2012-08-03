@@ -1,4 +1,4 @@
-package pl.ceon.research.richimporttsv.io;
+package pl.edu.icm.coansys.richimporttsv.io;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;

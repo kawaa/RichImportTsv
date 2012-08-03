@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package pl.ceon.research.richimporttsv.io;
+package pl.edu.icm.coansys.richimporttsv.io;
 
 
 import org.apache.hadoop.conf.Configuration;

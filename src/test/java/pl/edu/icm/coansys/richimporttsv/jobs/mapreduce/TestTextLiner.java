@@ -1,11 +1,10 @@
-package pl.ceon.research.richimporttsv.jobs.mapreduce;
+package pl.edu.icm.coansys.richimporttsv.jobs.mapreduce;
 
 import java.io.File;
 import junit.framework.Assert;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.Test;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

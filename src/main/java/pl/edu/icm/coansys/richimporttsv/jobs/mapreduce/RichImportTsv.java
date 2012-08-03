@@ -12,7 +12,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package pl.ceon.research.richimporttsv.jobs.mapreduce;
+package pl.edu.icm.coansys.richimporttsv.jobs.mapreduce;
 
 import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
@@ -21,8 +21,8 @@ import org.apache.hadoop.hbase.mapreduce.*;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
-import pl.ceon.research.richimporttsv.io.SeparatorInputFormat;
-import pl.ceon.research.richimporttsv.io.SeparatorRecordReader;
+import pl.edu.icm.coansys.richimporttsv.io.SeparatorInputFormat;
+import pl.edu.icm.coansys.richimporttsv.io.SeparatorRecordReader;
 
 /**
  *

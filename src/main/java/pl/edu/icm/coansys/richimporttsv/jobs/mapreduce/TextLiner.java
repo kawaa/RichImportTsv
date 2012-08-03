@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package pl.ceon.research.richimporttsv.jobs.mapreduce;
+package pl.edu.icm.coansys.richimporttsv.jobs.mapreduce;
 
 /**
  *
@@ -19,7 +19,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import pl.ceon.research.richimporttsv.io.SeparatorInputFormat;
+import pl.edu.icm.coansys.richimporttsv.io.SeparatorInputFormat;
 
 public class TextLiner extends Configured implements Tool {
 
