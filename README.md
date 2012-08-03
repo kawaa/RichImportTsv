@@ -7,7 +7,7 @@ It enhances the usage of ImportTsv and allows you to load data where records are
 
 ## Quick Start
 
-This example will load data where records are separated by "#", while fields (within a record) are separated by ".".
+This example will load data where records are separated by "#" and fields (within a record) are separated by ".".
 
 ### Data preparation
 ```
