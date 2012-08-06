@@ -3,7 +3,10 @@ RichImportTsv
 
 ## About
 RichImportTsv is build on top of ImportTsv and loads data into HBase. 
-It enhances the usage of ImportTsv and allows you to load data where records are separated by any separators (not only new line as it is hard-coded in ImportTsv). A non-default record speparator can be specified using -Dimporttsv.record.separator=separator. RichImportTsv internally uses SeparatorInputFormat (can be changed using -Dimporttsv.input.format.class=input_format_class).
+
+It enhances the usage of ImportTsv and allows you to load data where records are separated by any separators (not only new line as it is hard-coded in ImportTsv). A non-default record speparator can be specified using -Dimporttsv.record.separator=separator. 
+
+RichImportTsv internally uses SeparatorInputFormat (can be changed using -Dimporttsv.input.format.class=input_format_class).
 
 ## Quick Start
 
@@ -44,9 +47,17 @@ hbase org.apache.hadoop.hbase.io.hfile.HFile -v -p -f richoutput/cf/a3caf62794f4
 
 ### SeparatorInputFormat
 
-RichImportTsv internally uses SeparatorInputFormat in order to read records separated by any separator (not only new line as TextInputFormat does). It is based on implementation code and description presented at http://blog.rguha.net/?p=293. We extended the code by adding paramter (i.e. record.separator) to specify a separator and caluclating the progress of reading.
+RichImportTsv internally uses SeparatorInputFormat in order to read records separated by any separator (not only new line as TextInputFormat does). It is based on implementation code and description presented at http://blog.rguha.net/?p=293. We extended the code by adding parameter (i.e. record.separator) to specify a separator and caluclating the progress of reading the input.
 
 ```
 hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.edu.icm.coansys.richimporttsv.jobs.mapreduce.TextLiner -libjars RichImportTsv-1.0-SNAPSHOT.jar,/usr/lib/hbase/hbase.jar -Drecord.separator=# richinput/hash_dot.dat textliner-output/
 hadoop fs -cat textliner-output/part-m-00000
+```
+
+### Tests
+
+Run tests by typing:
+
+```
+mvn test
 ```
