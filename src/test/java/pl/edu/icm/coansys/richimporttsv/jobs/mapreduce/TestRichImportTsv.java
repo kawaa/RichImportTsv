@@ -12,8 +12,12 @@
  */
 package pl.edu.icm.coansys.richimporttsv.jobs.mapreduce;
 
-
-
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -31,43 +35,91 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.mapreduce.*;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-public class TestRichImportTsv extends GenericTestCase{
+public class TestRichImportTsv {
 
-    private Log LOG = LogFactory.getLog(TestRichImportTsv.class);
-    
-    //@Test
+    private static final Log LOG = LogFactory.getLog(TestRichImportTsv.class);
+    private static final HBaseTestingUtility UTIL = new HBaseTestingUtility();
+    // some prefefinied names
+    final protected long TEST_ROW_COUNT = 100;
+    final protected String S_ROW_PREFIX = "row";
+    final protected String S_COLUMN_FAMILY = "cf";
+    final protected String S_COLUMN_QUALIFIER = "cq";
+    final protected byte[] B_COLUMN_FAMILY = Bytes.toBytes(S_COLUMN_FAMILY);
+    final protected byte[] B_COLUMN_QUALIFIER = Bytes.toBytes(S_COLUMN_QUALIFIER);
+    final protected byte[] B_VALUE = Bytes.toBytes("value");
+
+    private String getCurrentDateAppended(String name) {
+        return name + "-" + new Date().getTime();
+    }
+
+    private void dropTable(String tableName) {
+        try {
+            UTIL.deleteTable(Bytes.toBytes(tableName));
+        } catch (IOException ex) {
+            LOG.info("Table can not be deleted: " + tableName + "\n" + ex.getLocalizedMessage());
+        }
+    }
+
+    private HTable createAndPopulateDefaultTable(String tableName, long rowCount) throws IOException, InterruptedException {
+        HTable htable = UTIL.createTable(Bytes.toBytes(tableName), B_COLUMN_FAMILY);
+        List<Row> putList = new ArrayList<Row>();
+        for (long i = 0; i < rowCount; ++i) {
+            Put put = new Put(Bytes.toBytes(S_ROW_PREFIX + i));
+            put.add(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER, B_VALUE);
+            putList.add(put);
+        }
+        htable.batch(putList);
+        return htable;
+    }
+
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        UTIL.startMiniCluster();
+        UTIL.startMiniMapReduceCluster();
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        UTIL.shutdownMiniMapReduceCluster();
+        UTIL.shutdownMiniCluster();
+    }
+
+    @Test
     public void testTableRichImportTsv() throws Exception {
- 
+
         String tableInitName = getCurrentDateAppended("testTableRichImportTsv");
         String inputFileName = "InputFile.dat";
 
         String[] args = new String[]{
             "-Dimporttsv.record.separator=#",
             "-Dimporttsv.separator=$",
-            "-Dimporttsv.columns=HBASE_ROW_KEY," + COLUMN_FAMILY_NAME + ":" + COLUMN_QUALIFIER_NAME,
+            "-Dimporttsv.columns=HBASE_ROW_KEY," + S_COLUMN_FAMILY + ":" + S_COLUMN_QUALIFIER,
             tableInitName,
             inputFileName
         };
 
-        HTable htableImport = doMROnTableTest(inputFileName, COLUMN_FAMILY_NAME, tableInitName, "KEY1$VALUE\n1#KEY2$VALUE2#\nKEY3$VALUE3", args);
+        HTable htableImport = doMROnTableTest(inputFileName, S_COLUMN_FAMILY, tableInitName, "KEY1$VALUE\n1#KEY2$VALUE2#\nKEY3$VALUE3", args);
 
         Result key1 = htableImport.get(new Get(Bytes.toBytes("KEY1")));
         assertNotNull(key1);
-        assertEquals("VALUE\n1", Bytes.toString(key1.getValue(COLUMN_FAMILY, COLUMN_QUALIFIER)));
+        assertEquals("VALUE\n1", Bytes.toString(key1.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER)));
         Result key3 = htableImport.get(new Get(Bytes.toBytes("\nKEY3")));
         assertNotNull(key3);
-        assertEquals("VALUE3", Bytes.toString(key3.getValue(COLUMN_FAMILY, COLUMN_QUALIFIER)));
+        assertEquals("VALUE3", Bytes.toString(key3.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER)));
 
         dropTable(tableInitName);
     }
 
-    //@Test
+    @Test
     public void testDirRichImportTsv() throws Exception {
         String tableInitName = getCurrentDateAppended("testDirRichImportTsv");
         String inputFileName = "InputFile2.dat";
         String outputDirName = getCurrentDateAppended("richtsv-output");
-        FileSystem dfs = util.getDFSCluster().getFileSystem();
+        FileSystem dfs = UTIL.getDFSCluster().getFileSystem();
 
         Path qualifiedOutputDir = dfs.makeQualified(new Path(outputDirName));
         assertFalse(dfs.exists(qualifiedOutputDir));
@@ -76,27 +128,24 @@ public class TestRichImportTsv extends GenericTestCase{
         String[] args = new String[]{
             "-Dimporttsv.record.separator=#",
             "-Dimporttsv.separator=$",
-            "-Dimporttsv.columns=HBASE_ROW_KEY," + COLUMN_FAMILY_NAME + ":" + COLUMN_QUALIFIER_NAME,
+            "-Dimporttsv.columns=HBASE_ROW_KEY," + S_COLUMN_FAMILY + ":" + S_COLUMN_QUALIFIER,
             "-Dimporttsv.bulk.output=" + outputDirName,
             tableInitName,
             inputFileName
         };
 
-        doMROnTableTest(inputFileName, COLUMN_FAMILY_NAME, tableInitName, "KEY1$VALUE\n1#KEY2$VALUE2#\nKEY3$VALUE3", args);
+        doMROnTableTest(inputFileName, S_COLUMN_FAMILY, tableInitName, "KEY1$VALUE\n1#KEY2$VALUE2#\nKEY3$VALUE3", args);
 
         assertTrue(dfs.exists(qualifiedOutputDir));
-
-        String localOutputDir = "src/test/resource/inputformat/output/" + outputDirName;
-        dfs.copyToLocalFile(qualifiedOutputDir, new Path(localOutputDir));
     }
 
     private HTable doMROnTableTest(String inputFile, String family, String tableName, String line, String[] args) throws Exception {
 
-        GenericOptionsParser opts = new GenericOptionsParser(util.getConfiguration(), args);
-        Configuration config = util.getConfiguration();
+        GenericOptionsParser opts = new GenericOptionsParser(UTIL.getConfiguration(), args);
+        Configuration config = UTIL.getConfiguration();
         args = opts.getRemainingArgs();
 
-        FileSystem fs = util.getDFSCluster().getFileSystem();
+        FileSystem fs = UTIL.getDFSCluster().getFileSystem();
         FSDataOutputStream op = fs.create(new Path(inputFile), true);
         op.write(line.getBytes(HConstants.UTF8_ENCODING));
         op.close();
@@ -106,8 +155,8 @@ public class TestRichImportTsv extends GenericTestCase{
         final byte[] FAM = Bytes.toBytes(family);
         final byte[] TAB = Bytes.toBytes(tableName);
 
-        HTable htableImport = util.createTable(TAB, FAM);
-        assertEquals(0, util.countRows(htableImport));
+        HTable htableImport = UTIL.createTable(TAB, FAM);
+        assertEquals(0, UTIL.countRows(htableImport));
 
         Job job = RichImportTsv.createSubmittableJob(config, args);
         job.waitForCompletion(false);
@@ -115,12 +164,12 @@ public class TestRichImportTsv extends GenericTestCase{
         return htableImport;
     }
 
-    //@Test(timeout = 1800000)
+    @Test(timeout = 1800000)
     public void testRowCounter() throws Exception {
         String tableInitName = getCurrentDateAppended("testRowCounter");
-        createAndPopulateTable(tableInitName, TEST_ROW_COUNT);
+        createAndPopulateDefaultTable(tableInitName, TEST_ROW_COUNT);
 
-        Job job = RowCounter.createSubmittableJob(util.getConfiguration(), new String[]{tableInitName});
+        Job job = RowCounter.createSubmittableJob(UTIL.getConfiguration(), new String[]{tableInitName});
         job.waitForCompletion(true);
         long count = job.getCounters().findCounter("org.apache.hadoop.hbase.mapreduce.RowCounter$RowCounterMapper$Counters", "ROWS").getValue();
         Assert.assertEquals(TEST_ROW_COUNT, count);
@@ -128,44 +177,44 @@ public class TestRichImportTsv extends GenericTestCase{
         dropTable(tableInitName);
     }
 
-    //@Test(timeout = 1800000)
+    @Test(timeout = 1800000)
     public void testCopy() throws Exception {
 
         String tableInitName = getCurrentDateAppended("testCopy");
-        createAndPopulateTable(tableInitName, TEST_ROW_COUNT);
+        createAndPopulateDefaultTable(tableInitName, TEST_ROW_COUNT);
 
         final String tableCopyName = tableInitName + "Copy";
-        HTable htableCopy = util.createTable(Bytes.toBytes(tableCopyName), COLUMN_FAMILY);
+        HTable htableCopy = UTIL.createTable(Bytes.toBytes(tableCopyName), B_COLUMN_FAMILY);
 
-        Job job = CopyTable.createSubmittableJob(util.getConfiguration(), new String[]{"--new.name=" + tableCopyName, tableInitName});
+        Job job = CopyTable.createSubmittableJob(UTIL.getConfiguration(), new String[]{"--new.name=" + tableCopyName, tableInitName});
         job.waitForCompletion(true);
-        Assert.assertEquals(TEST_ROW_COUNT, (long) util.countRows(htableCopy));
+        Assert.assertEquals(TEST_ROW_COUNT, (long) UTIL.countRows(htableCopy));
 
         dropTable(tableInitName);
         dropTable(tableCopyName);
     }
 
-    //@Test(timeout = 1800000)
+    @Test(timeout = 1800000)
     public void testExportImport() throws Exception {
 
         String tableInitName = getCurrentDateAppended("testExportImport");
-        createAndPopulateTable(tableInitName, TEST_ROW_COUNT);
+        createAndPopulateDefaultTable(tableInitName, TEST_ROW_COUNT);
 
-        FileSystem dfs = util.getDFSCluster().getFileSystem();
+        FileSystem dfs = UTIL.getDFSCluster().getFileSystem();
         Path qualifiedTempDir = dfs.makeQualified(new Path("export-import-temp-dir"));
         Assert.assertFalse(dfs.exists(qualifiedTempDir));
 
-        Job jobExport = Export.createSubmittableJob(util.getConfiguration(), new String[]{tableInitName, qualifiedTempDir.toString()});
+        Job jobExport = Export.createSubmittableJob(UTIL.getConfiguration(), new String[]{tableInitName, qualifiedTempDir.toString()});
         jobExport.waitForCompletion(true);
 
         Assert.assertTrue(dfs.exists(qualifiedTempDir));
 
         final String tableImportName = tableInitName + "Import";
-        HTable htableImport = util.createTable(Bytes.toBytes(tableImportName), COLUMN_FAMILY);
+        HTable htableImport = UTIL.createTable(Bytes.toBytes(tableImportName), B_COLUMN_FAMILY);
 
-        Job jobImport = Import.createSubmittableJob(util.getConfiguration(), new String[]{tableImportName, qualifiedTempDir.toString()});
+        Job jobImport = Import.createSubmittableJob(UTIL.getConfiguration(), new String[]{tableImportName, qualifiedTempDir.toString()});
         jobImport.waitForCompletion(true);
-        Assert.assertEquals(TEST_ROW_COUNT, (long) util.countRows(htableImport));
+        Assert.assertEquals(TEST_ROW_COUNT, (long) UTIL.countRows(htableImport));
 
         dropTable(tableInitName);
         dropTable(tableImportName);
