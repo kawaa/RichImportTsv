@@ -22,7 +22,7 @@ echo "VALUE3b#KEY4.VALUE4" >> richinput/hash_dot.dat
 hadoop fs -put richinput .
 
 # download the jar
-wget -O RichImportTsv-1.0-SNAPSHOT.jar 'https://github.com/kawaa/RichImportTsv/blob/master/RichImportTsv-1.0-SNAPSHOT.jar?raw=true'
+wget -O RichImportTsv-1.0-SNAPSHOT.jar 'https://github.com/kawaa/RichImportTsv/raw/master/RichImportTsv-1.0-SNAPSHOT.jar'
 ```
 
 ### Load data via Puts (i.e. non-bulk loading):
