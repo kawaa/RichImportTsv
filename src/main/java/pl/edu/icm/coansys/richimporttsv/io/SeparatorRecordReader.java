@@ -18,22 +18,23 @@ import org.apache.hadoop.hbase.util.Bytes;
 public class SeparatorRecordReader extends RecordReader<LongWritable, Text> {
 
     final public static String RECORD_SEPARATOR_CONF_KEY = "record.separator";
-    final static String DEFAULT_SEPARATOR = "\n";
+    final static String DEFAULT_RECORD_SEPARATOR = "\n";
     private long start;
     private long end;
     private long bytesConsumed = 0;
     private long bytesToConsume;
     private boolean stillInChunk = true;
-    private LongWritable key = new LongWritable();
-    private Text value = new Text();
     private FSDataInputStream fsin;
     private DataOutputBuffer buffer = new DataOutputBuffer();
     private byte[] endTag;
+    // key/values types
+    private LongWritable key = new LongWritable();
+    private Text value = new Text();
 
     public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         Configuration conf = taskAttemptContext.getConfiguration();
-        endTag = Bytes.toBytes(conf.get(RECORD_SEPARATOR_CONF_KEY, DEFAULT_SEPARATOR));
-                
+        endTag = Bytes.toBytes(conf.get(RECORD_SEPARATOR_CONF_KEY, DEFAULT_RECORD_SEPARATOR));
+
         FileSplit split = (FileSplit) inputSplit;
         Path path = split.getPath();
         FileSystem fs = path.getFileSystem(conf);
@@ -63,7 +64,7 @@ public class SeparatorRecordReader extends RecordReader<LongWritable, Text> {
         boolean status = readUntilMatch(endTag, true);
         int bufferContentLength = buffer.getLength() - (status ? endTag.length : 0);
         value = new Text();
-        
+
         value.set(buffer.getData(), 0, bufferContentLength);
         key = new LongWritable(fsin.getPos());
         bytesConsumed += buffer.getLength();
@@ -112,6 +113,6 @@ public class SeparatorRecordReader extends RecordReader<LongWritable, Text> {
 
     @Override
     public Text getCurrentValue() throws IOException, InterruptedException {
-       return value;
+        return value;
     }
 }

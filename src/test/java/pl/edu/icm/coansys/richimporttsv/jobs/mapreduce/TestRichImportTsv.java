@@ -1,14 +1,18 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE
- * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
- * License. You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package pl.edu.icm.coansys.richimporttsv.jobs.mapreduce;
 
@@ -34,6 +38,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.mapreduce.*;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -42,14 +47,16 @@ import org.junit.Test;
 public class TestRichImportTsv {
 
     private static final Log LOG = LogFactory.getLog(TestRichImportTsv.class);
-    private static final HBaseTestingUtility UTIL = new HBaseTestingUtility();
+    private static HBaseTestingUtility UTIL;
     // some prefefinied names
     final protected long TEST_ROW_COUNT = 100;
     final protected String S_ROW_PREFIX = "row";
     final protected String S_COLUMN_FAMILY = "cf";
     final protected String S_COLUMN_QUALIFIER = "cq";
+    final protected String S_COLUMN_QUALIFIER2 = "cq2";
     final protected byte[] B_COLUMN_FAMILY = Bytes.toBytes(S_COLUMN_FAMILY);
     final protected byte[] B_COLUMN_QUALIFIER = Bytes.toBytes(S_COLUMN_QUALIFIER);
+    final protected byte[] B_COLUMN_QUALIFIER2 = Bytes.toBytes(S_COLUMN_QUALIFIER2);
     final protected byte[] B_VALUE = Bytes.toBytes("value");
 
     private String getCurrentDateAppended(String name) {
@@ -78,6 +85,22 @@ public class TestRichImportTsv {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
+
+       
+        Configuration conf = new Configuration();
+//        File workingDirectory = new File("./");
+//        System.setProperty("test.build.data", workingDirectory.getAbsolutePath());
+//        conf.set("test.build.data", new File(workingDirectory, "zookeeper").getAbsolutePath());
+//        conf.set("fs.default.name", "file:///");
+//        conf.set("zookeeper.session.timeout", "180000");
+        conf.set("hbase.zookeeper.peerport", "2889");
+        conf.set("hbase.zookeeper.property.clientPort", "2182");
+        conf.set("hbase.master.port", "6001");
+        conf.set("hbase.master.info.port", "6011");
+        conf.set("hbase.regionserver.port", "6021");
+        conf.set("hbase.regionserver.info.port", "6031");
+
+        UTIL = new HBaseTestingUtility(conf);
         UTIL.startMiniCluster();
         UTIL.startMiniMapReduceCluster();
     }
@@ -88,7 +111,7 @@ public class TestRichImportTsv {
         UTIL.shutdownMiniCluster();
     }
 
-    @Test
+    @Test(timeout = 1800000)
     public void testTableRichImportTsv() throws Exception {
 
         String tableInitName = getCurrentDateAppended("testTableRichImportTsv");
@@ -114,10 +137,100 @@ public class TestRichImportTsv {
         dropTable(tableInitName);
     }
 
+    @Test(timeout = 1800000)
+    public void testMultiCharacterSeparatorsTableRichImportTsv() throws Exception {
+
+        String tableInitName = getCurrentDateAppended("testTableRichImportTsv");
+        String inputFileName = "InputFile.dat";
+
+        String[] args = new String[]{
+            "-Dimporttsv.record.separator=###",
+            "-Dimporttsv.separator=$$$",
+            "-Dimporttsv.columns=HBASE_ROW_KEY," + S_COLUMN_FAMILY + ":" + S_COLUMN_QUALIFIER,
+            tableInitName,
+            inputFileName
+        };
+
+        HTable htableImport = doMROnTableTest(inputFileName, S_COLUMN_FAMILY, tableInitName,
+                "KEY1$$$VALUE\n1###KEY2$$$VALUE2###\nKEY3$$$VALUE3", args);
+
+        Result key1 = htableImport.get(new Get(Bytes.toBytes("KEY1")));
+        assertNotNull(key1);
+        assertEquals("VALUE\n1", Bytes.toString(key1.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER)));
+        Result key3 = htableImport.get(new Get(Bytes.toBytes("\nKEY3")));
+        assertNotNull(key3);
+        assertEquals("VALUE3", Bytes.toString(key3.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER)));
+
+        dropTable(tableInitName);
+    }
+
+    @Test(timeout = 1800000)
+    public void testMultiCharacterSeparatorsMultiColumnInputTableRichImportTsv() throws Exception {
+
+        String tableInitName = getCurrentDateAppended("testTableRichImportTsv");
+        String inputFileName = "InputFile.dat";
+
+        String[] args = new String[]{
+            "-Dimporttsv.record.separator=###",
+            "-Dimporttsv.separator=$$$",
+            "-Dimporttsv.columns=HBASE_ROW_KEY," 
+                + S_COLUMN_FAMILY + ":" + S_COLUMN_QUALIFIER + "," 
+                + S_COLUMN_FAMILY + ":" + S_COLUMN_QUALIFIER2,
+            tableInitName,
+            inputFileName
+        };
+
+        HTable htableImport = doMROnTableTest(inputFileName, S_COLUMN_FAMILY, tableInitName,
+                "KEY1$$$VALUEa$$$VALUEb\n###KEY2$$$VALUE2$$$VALUE2b###\nKEY3$$$VALUE3$$$VALUE3b", args);
+
+        Result key1 = htableImport.get(new Get(Bytes.toBytes("KEY1")));
+        assertNotNull(key1);
+        assertEquals("VALUEa", Bytes.toString(key1.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER)));
+        assertEquals("VALUEb\n", Bytes.toString(key1.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER2)));
+
+        Result key2 = htableImport.get(new Get(Bytes.toBytes("KEY2")));
+        assertNotNull(key2);
+        assertEquals("VALUE2", Bytes.toString(key2.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER)));
+        assertEquals("VALUE2b", Bytes.toString(key2.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER2)));
+
+        Result key3 = htableImport.get(new Get(Bytes.toBytes("\nKEY3")));
+        assertNotNull(key3);
+        assertEquals("VALUE3", Bytes.toString(key3.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER)));
+        assertEquals("VALUE3b", Bytes.toString(key3.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER2)));
+
+        dropTable(tableInitName);
+    }
+
+    @Test(timeout = 1800000)
+    public void testTextInputFormatTableRichImportTsv() throws Exception {
+
+        String tableInitName = getCurrentDateAppended("testTableRichImportTsv");
+        String inputFileName = "InputFile.dat";
+
+        String[] args = new String[]{
+            "-Dimporttsv.input.format.class=org.apache.hadoop.mapreduce.lib.input.TextInputFormat",
+            "-Dimporttsv.separator=$",
+            "-Dimporttsv.columns=HBASE_ROW_KEY," + S_COLUMN_FAMILY + ":" + S_COLUMN_QUALIFIER,
+            tableInitName,
+            inputFileName
+        };
+
+        HTable htableImport = doMROnTableTest(inputFileName, S_COLUMN_FAMILY, tableInitName, "KEY1$VALUE1\nKEY2$VALUE2\nKEY3$VALUE3", args);
+
+        Result key1 = htableImport.get(new Get(Bytes.toBytes("KEY1")));
+        assertNotNull(key1);
+        assertEquals("VALUE1", Bytes.toString(key1.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER)));
+        Result key3 = htableImport.get(new Get(Bytes.toBytes("KEY3")));
+        assertNotNull(key3);
+        assertEquals("VALUE3", Bytes.toString(key3.getValue(B_COLUMN_FAMILY, B_COLUMN_QUALIFIER)));
+
+        dropTable(tableInitName);
+    }
+
     @Test
     public void testDirRichImportTsv() throws Exception {
         String tableInitName = getCurrentDateAppended("testDirRichImportTsv");
-        String inputFileName = "InputFile2.dat";
+        String inputFileName = "InputFile.dat";
         String outputDirName = getCurrentDateAppended("richtsv-output");
         FileSystem dfs = UTIL.getDFSCluster().getFileSystem();
 
@@ -164,7 +277,7 @@ public class TestRichImportTsv {
         return htableImport;
     }
 
-    @Test(timeout = 1800000)
+    //@Test(timeout = 1800000)
     public void testRowCounter() throws Exception {
         String tableInitName = getCurrentDateAppended("testRowCounter");
         createAndPopulateDefaultTable(tableInitName, TEST_ROW_COUNT);
@@ -177,7 +290,7 @@ public class TestRichImportTsv {
         dropTable(tableInitName);
     }
 
-    @Test(timeout = 1800000)
+    //@Test(timeout = 1800000)
     public void testCopy() throws Exception {
 
         String tableInitName = getCurrentDateAppended("testCopy");
@@ -194,7 +307,7 @@ public class TestRichImportTsv {
         dropTable(tableCopyName);
     }
 
-    @Test(timeout = 1800000)
+    //@Test(timeout = 1800000)
     public void testExportImport() throws Exception {
 
         String tableInitName = getCurrentDateAppended("testExportImport");
