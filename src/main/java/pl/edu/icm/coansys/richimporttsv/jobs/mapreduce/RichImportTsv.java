@@ -1,26 +1,38 @@
 /**
  * Copyright 2010 The Apache Software Foundation
  *
- * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE
- * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
- * License. You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package pl.edu.icm.coansys.richimporttsv.jobs.mapreduce;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import java.io.IOException;
+import java.util.ArrayList;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.mapreduce.*;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
+import pl.edu.icm.coansys.richimporttsv.algorithm.KMPMatcher;
 import pl.edu.icm.coansys.richimporttsv.io.SeparatorInputFormat;
 import pl.edu.icm.coansys.richimporttsv.io.SeparatorRecordReader;
 
@@ -30,20 +42,155 @@ import pl.edu.icm.coansys.richimporttsv.io.SeparatorRecordReader;
  */
 public class RichImportTsv extends ImportTsv {
 
-    public static String ROWKEY_COLUMN_SPEC = "HBASE_ROW_KEY";
-    final static String NAME = RichImportTsv.class.getName();
-    final static String INPUT_FORMAT_CONF_KEY = "importtsv.input.format.class";
-    final static String MAPPER_CONF_KEY = "importtsv.mapper.class";
-    final static String SKIP_LINES_CONF_KEY = "importtsv.skip.bad.lines";
-    final static String BULK_OUTPUT_CONF_KEY = "importtsv.bulk.output";
-    final static String COLUMNS_CONF_KEY = "importtsv.columns";
-    final static String SEPARATOR_CONF_KEY = "importtsv.separator";
-    final static String RECORD_SEPARATOR_CONF_KEY = "importtsv.record.separator";
-    final static String TIMESTAMP_CONF_KEY = "importtsv.timestamp";
-    final static String DEFAULT_SEPARATOR = "\t";
-    final static String DEFAULT_RECORD_SEPARATOR = "\n";
-    final static Class DEFAULT_MAPPER = TsvImporterMapper.class;
-    final static Class DEFAULT_INPUT_FORMAT = SeparatorInputFormat.class;
+    public final static String ROWKEY_COLUMN_SPEC = "HBASE_ROW_KEY";
+    public final static String NAME = RichImportTsv.class.getName();
+    public final static String INPUT_FORMAT_CONF_KEY = "importtsv.input.format.class";
+    public final static String MAPPER_CONF_KEY = "importtsv.mapper.class";
+    public final static String SKIP_LINES_CONF_KEY = "importtsv.skip.bad.lines";
+    public final static String BULK_OUTPUT_CONF_KEY = "importtsv.bulk.output";
+    public final static String COLUMNS_CONF_KEY = "importtsv.columns";
+    public final static String SEPARATOR_CONF_KEY = "importtsv.separator";
+    public final static String RECORD_SEPARATOR_CONF_KEY = "importtsv.record.separator";
+    public final static String TIMESTAMP_CONF_KEY = "importtsv.timestamp";
+    public final static String DEFAULT_SEPARATOR = "\t";
+    public final static String DEFAULT_RECORD_SEPARATOR = "\n";
+    public final static Class DEFAULT_MAPPER = RichTsvImporterMapper.class;
+    public final static Class DEFAULT_INPUT_FORMAT = SeparatorInputFormat.class;
+
+    static class RichTsvParser {
+
+        /**
+         * Column families and qualifiers mapped to the TSV columns
+         */
+        private final byte[][] families;
+        private final byte[][] qualifiers;
+        private final byte[] separatorBytes;
+        private int rowKeyColumnIndex;
+        public static String ROWKEY_COLUMN_SPEC = RichImportTsv.ROWKEY_COLUMN_SPEC;
+
+        /**
+         * @param columnsSpecification the list of columns to parser out, comma
+         * separated. The row key should be the special token
+         * TsvParser.ROWKEY_COLUMN_SPEC
+         */
+        public RichTsvParser(String columnsSpecification, String separatorStr) {
+            // Configure separator
+            byte[] separator = Bytes.toBytes(separatorStr);
+            separatorBytes = separator;
+
+            // Configure columns
+            ArrayList<String> columnStrings = Lists.newArrayList(
+                    Splitter.on(',').trimResults().split(columnsSpecification));
+
+            families = new byte[columnStrings.size()][];
+            qualifiers = new byte[columnStrings.size()][];
+
+            for (int i = 0; i < columnStrings.size(); i++) {
+                String str = columnStrings.get(i);
+                if (ROWKEY_COLUMN_SPEC.equals(str)) {
+                    rowKeyColumnIndex = i;
+                    continue;
+                }
+                String[] parts = str.split(":", 2);
+                if (parts.length == 1) {
+                    families[i] = str.getBytes();
+                    qualifiers[i] = HConstants.EMPTY_BYTE_ARRAY;
+                } else {
+                    families[i] = parts[0].getBytes();
+                    qualifiers[i] = parts[1].getBytes();
+                }
+            }
+        }
+
+        public int getRowKeyColumnIndex() {
+            return rowKeyColumnIndex;
+        }
+
+        public byte[] getFamily(int idx) {
+            return families[idx];
+        }
+
+        public byte[] getQualifier(int idx) {
+            return qualifiers[idx];
+        }
+
+        public ParsedLine parse(byte[] lineBytes, int length) throws BadTsvLineException {
+            // Enumerate separator offsets
+            ArrayList<Integer> tabOffsets = new ArrayList<Integer>(families.length);
+            int i = 0;
+            while (i < length) {
+                i = KMPMatcher.indexOf(lineBytes, i, separatorBytes);
+                if (i != KMPMatcher.FAILURE) {
+                    tabOffsets.add(i);
+                    i += separatorBytes.length;
+                } else {
+                    break;
+                }
+            }
+
+            if (tabOffsets.isEmpty()) {
+                throw new BadTsvLineException("No delimiter");
+            }
+
+            tabOffsets.add(length);
+
+            if (tabOffsets.size() > families.length) {
+                throw new BadTsvLineException("Excessive columns");
+            } else if (tabOffsets.size() <= getRowKeyColumnIndex()) {
+                throw new BadTsvLineException("No row key");
+            }
+            return new ParsedLine(tabOffsets, lineBytes, separatorBytes.length);
+        }
+
+        class ParsedLine {
+
+            private final ArrayList<Integer> tabOffsets;
+            private byte[] lineBytes;
+            private int separatorSize;
+
+            ParsedLine(ArrayList<Integer> tabOffsets, byte[] lineBytes, int separatorSize) {
+                this.tabOffsets = tabOffsets;
+                this.lineBytes = lineBytes;
+                this.separatorSize = separatorSize;
+            }
+
+            public int getRowKeyOffset() {
+                return getColumnOffset(rowKeyColumnIndex);
+            }
+
+            public int getRowKeyLength() {
+                return getColumnLength(rowKeyColumnIndex);
+            }
+
+            public int getColumnOffset(int idx) {
+                if (idx > 0) {
+                    return tabOffsets.get(idx - 1) + separatorSize;
+                } else {
+                    return 0;
+                }
+            }
+
+            public int getColumnLength(int idx) {
+                return tabOffsets.get(idx) - getColumnOffset(idx);
+            }
+
+            public int getColumnCount() {
+                return tabOffsets.size();
+            }
+
+            public byte[] getLineBytes() {
+                return lineBytes;
+            }
+        }
+
+        public static class BadTsvLineException extends Exception {
+
+            public BadTsvLineException(String err) {
+                super(err);
+            }
+            private static final long serialVersionUID = 1L;
+        }
+    }
 
     /**
      * Sets up the actual job.
@@ -63,12 +210,18 @@ public class RichImportTsv extends ImportTsv {
         job.setInputFormatClass(inputFormatClass);
 
         // Setting record separator
-        String recordSeparator = job.getConfiguration().get(RECORD_SEPARATOR_CONF_KEY);
+        String recordSeparator = conf.get(RECORD_SEPARATOR_CONF_KEY);
         if (recordSeparator == null) {
             recordSeparator = DEFAULT_RECORD_SEPARATOR;
         }
-
         job.getConfiguration().set(SeparatorRecordReader.RECORD_SEPARATOR_CONF_KEY, recordSeparator);
+
+        // Setting custom mapper, if any
+        String mapperClassName = conf.get(MAPPER_CONF_KEY);
+        if (mapperClassName == null) {
+            job.setMapperClass(DEFAULT_MAPPER);
+        }
+
         return job;
     }
 
@@ -118,7 +271,6 @@ public class RichImportTsv extends ImportTsv {
         main(HBaseConfiguration.create(), args);
     }
 
-   
     public static void main(Configuration conf, String[] args) throws Exception {
         if (conf == null) {
             conf = HBaseConfiguration.create();
