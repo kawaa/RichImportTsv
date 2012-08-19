@@ -5,8 +5,8 @@ RichImportTsv
 RichImportTsv is build on top of ImportTsv and loads data into HBase. 
 
 It enhances the usage of ImportTsv and allows you to load data where:
-* fields are separated by multi-character separator,
-* records are separated by any separators (not only new line as it is hard-coded in ImportTsv). A non-default record speparator can be specified using -Dimporttsv.record.separator=separator. 
+* fields can be separated by multi-character separator,
+* records can be separated by any separators (not only new line as it is hard-coded in ImportTsv). A non-default record speparator can be specified using -Dimporttsv.record.separator=separator. 
 
 RichImportTsv internally uses SeparatorInputFormat (can be changed using -Dimporttsv.input.format.class=input_format_class).
 
