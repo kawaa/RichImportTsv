@@ -75,7 +75,7 @@ KEY1...VALUE1a...VALUE1b###KEY2...VALUE2a...VALUE2b###KEY3...VALUE3a...
 VALUE3b###KEY4...VALUE4a...VALUE4b
 
 # create the target table
-echo "create 'tab_hash3_dot3', 'cf'" | hbase shell
+echo "create 'tab_hash3_dot3_dot3', 'cf'" | hbase shell
 
 # run the application
 hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.edu.icm.coansys.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0-SNAPSHOT.jar -Dimporttsv.record.separator=### -Dimporttsv.separator=... -Dimporttsv.columns=HBASE_ROW_KEY,cf:cqA,cf:cqB tab_hash3_dot3_dot3 richinput/hash3_dot3_dot3.dat
@@ -106,5 +106,5 @@ RichImportTsv internally uses SeparatorInputFormat in order to read records sepa
 I use HBaseTestingUtility to test RichImportTsv. I discovered that it works better if all Hadoop/HBase deamons are stopped before running the "local" tests.
 
 ```
-mvn test
+sudo mvn3 test
 ```
