@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.mapreduce.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.Job;
@@ -268,6 +265,20 @@ public class RichImportTsv extends ImportTsv {
      * @throws Exception When running the job fails.
      */
     public static void main(String[] args) throws Exception {
+        
+        /*
+        String tableInitName = "test_import";
+        String inputFileName = "/home/akawa/Documents/git-projects/RichImportTsv/zipdir_out3";
+
+        args = new String[]{
+            "-D" + SEPARATOR_CONF_KEY + "=########",
+            "-D" + RECORD_SEPARATOR_CONF_KEY + "=@@@@@@@@",
+            "-D" + COLUMNS_CONF_KEY + "=HBASE_ROW_KEY,m:mproto,c:cproto",
+            tableInitName,
+            inputFileName
+        };
+        */
+
         main(HBaseConfiguration.create(), args);
     }
 
@@ -275,7 +286,7 @@ public class RichImportTsv extends ImportTsv {
         if (conf == null) {
             conf = HBaseConfiguration.create();
         }
-
+        
         String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
         if (otherArgs.length < 2) {
             usage("Wrong number of arguments: " + otherArgs.length);

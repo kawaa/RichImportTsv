@@ -13,10 +13,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.conf.Configuration;
 import java.io.IOException;
 import org.apache.hadoop.hbase.mapreduce.TsvImporterMapper;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.Counter;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 /**
  * Write table content out to files in hdfs.
@@ -77,13 +74,12 @@ public class RichTsvImporterMapper extends TsvImporterMapper {
         separator = (separator == null ? RichImportTsv.DEFAULT_SEPARATOR : new String(Base64.decode(separator)));
 
         ts = conf.getLong(RichImportTsv.TIMESTAMP_CONF_KEY, System.currentTimeMillis());
-
         skipBadLines = context.getConfiguration().getBoolean(RichImportTsv.SKIP_LINES_CONF_KEY, true);
         badLineCount = context.getCounter("RichImportTsv", "Bad Lines");
     }
 
-    private void handleBadLines(long offset, RichImportTsv.RichTsvParser.BadTsvLineException badLine) {
-        System.err.println("Bad line at offset: " + offset + ":\n" + (badLine != null ? badLine.getMessage() : ""));
+    private void handleBadLines(long offset, String message) {
+        System.err.println("Bad line at offset: " + offset + ":\n" + message);
         incrementBadLineCount(1);
     }
 
@@ -110,23 +106,30 @@ public class RichTsvImporterMapper extends TsvImporterMapper {
                         ts,
                         KeyValue.Type.Put,
                         lineBytes, parsed.getColumnOffset(i), parsed.getColumnLength(i));
+
                 put.add(kv);
             }
+            
             context.write(rowKey, put);
+        
         } catch (RichImportTsv.RichTsvParser.BadTsvLineException badLine) {
             if (skipBadLines) {
-                handleBadLines(offset.get(), badLine);
+                handleBadLines(offset.get(), badLine.getMessage());
             } else {
                 throw new IOException(badLine);
             }
         } catch (IllegalArgumentException e) {
             if (skipBadLines) {
-                handleBadLines(offset.get(), null);
+                handleBadLines(offset.get(), e.getMessage());
             } else {
                 throw new IOException(e);
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            if (skipBadLines) {
+                handleBadLines(offset.get(), e.getMessage());
+            } else {
+                throw new IOException(e);
+            }
         }
     }
 }
