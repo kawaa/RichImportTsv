@@ -15,8 +15,6 @@ RichImportTsv internally uses SeparatorInputFormat (can be changed using -Dimpor
 
 ## Quick Start
 
-This example will load data where records are separated by "#" and fields (within a record) are separated by ".".
-
 ### Data preparation
 Some sample data can be taken from src/test/resource/richinput.
 ```
@@ -24,12 +22,13 @@ Some sample data can be taken from src/test/resource/richinput.
 $ hadoop fs -put src/test/resource/richinput/ .
 
 # download the jar
-$ wget -O RichImportTsv-1.0-SNAPSHOT.jar 'https://github.com/kawaa/RichImportTsv/raw/master/RichImportTsv-1.0-SNAPSHOT.jar'
+$ wget https://github.com/kawaa/RichImportTsv/raw/master/RichImportTsv-1.0-SNAPSHOT.jar
 ```
 
 ### Load data via Puts (i.e. non-bulk loading):
 
 #### Example 1
+This example will load data where records are separated by "#" and fields (within a record) are separated by ".".
 ```
 # (optional) familiarize with input file
 $ hadoop fs -cat richinput/hash_dot.dat
@@ -48,6 +47,7 @@ echo "scan 'tab_hash_dot'" | hbase shell
 ```
 
 #### Example 2
+This example will load data where records are separated by "###" and fields (within a record) are separated by "...".
 ```
 # (optional) familiarize with input file
 $ hadoop fs -cat richinput/hash3_dot3.dat
@@ -63,6 +63,25 @@ hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.edu.icm.coansys.richimporttsv.jobs.
 
 # examine the results (should be the same as in the previous example)
 echo "scan 'tab_hash3_dot3'" | hbase shell
+```
+
+#### Example 3
+This example will load data where records are separated by "###" and fields (within a record) are separated by "..." (but here we have two fields loaded to two distinct columns).
+```
+# (optional) familiarize with input file
+$ hadoop fs -cat richinput/hash3_dot3_dot3.dat
+
+KEY1...VALUE1a...VALUE1b###KEY2...VALUE2a...VALUE2b###KEY3...VALUE3a...
+VALUE3b###KEY4...VALUE4a...VALUE4b
+
+# create the target table
+echo "create 'tab_hash3_dot3', 'cf'" | hbase shell
+
+# run the application
+hadoop jar RichImportTsv-1.0-SNAPSHOT.jar pl.edu.icm.coansys.richimporttsv.jobs.mapreduce.RichImportTsv -libjars RichImportTsv-1.0-SNAPSHOT.jar -Dimporttsv.record.separator=### -Dimporttsv.separator=... -Dimporttsv.columns=HBASE_ROW_KEY,cf:cqA,cf:cqB tab_hash3_dot3_dot3 richinput/hash3_dot3_dot3.dat
+
+# examine the results (should be the same as in the previous example)
+echo "scan 'tab_hash3_dot3_dot3'" | hbase shel
 ```
 
 ### Generate StoreFiles for bulk-loading:
