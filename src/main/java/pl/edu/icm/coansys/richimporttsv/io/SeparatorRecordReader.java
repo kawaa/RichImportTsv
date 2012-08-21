@@ -31,6 +31,7 @@ public class SeparatorRecordReader extends RecordReader<LongWritable, Text> {
     private LongWritable key = new LongWritable();
     private Text value = new Text();
 
+    @Override
     public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         Configuration conf = taskAttemptContext.getConfiguration();
         endTag = Bytes.toBytes(conf.get(RECORD_SEPARATOR_CONF_KEY, DEFAULT_RECORD_SEPARATOR));
@@ -53,6 +54,7 @@ public class SeparatorRecordReader extends RecordReader<LongWritable, Text> {
         }
     }
 
+    @Override
     public boolean nextKeyValue() throws IOException {
         if (!stillInChunk) {
             return false;
@@ -62,25 +64,26 @@ public class SeparatorRecordReader extends RecordReader<LongWritable, Text> {
         // chunk we got (i.e., fsin.getPos() < end). If we've
         // read beyond the chunk it will be false
         boolean status = readUntilMatch(endTag, true);
+        boolean isFinished = fsin.getPos() >= end;
         int bufferContentLength = buffer.getLength() - (status ? endTag.length : 0);
-        value = new Text();
-
+        key.set(fsin.getPos());
         value.set(buffer.getData(), 0, bufferContentLength);
-        key = new LongWritable(fsin.getPos());
         bytesConsumed += buffer.getLength();
         buffer.reset();
 
-        if (!status) {
+        if (isFinished) {
             stillInChunk = false;
         }
 
         return true;
     }
 
+    @Override
     public float getProgress() throws IOException, InterruptedException {
         return (bytesToConsume == 0 ? 0f : bytesConsumed / bytesToConsume);
     }
 
+    @Override
     public void close() throws IOException {
         fsin.close();
     }
@@ -98,7 +101,7 @@ public class SeparatorRecordReader extends RecordReader<LongWritable, Text> {
             if (b == match[i]) {
                 i++;
                 if (i >= match.length) {
-                    return fsin.getPos() < end;
+                    return true;
                 }
             } else {
                 i = 0;

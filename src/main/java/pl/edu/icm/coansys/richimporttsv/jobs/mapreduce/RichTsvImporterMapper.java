@@ -13,7 +13,9 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.conf.Configuration;
 import java.io.IOException;
 import org.apache.hadoop.hbase.mapreduce.TsvImporterMapper;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.Counter;
+import pl.edu.icm.coansys.richimporttsv.algorithm.KMPMatcher;
 
 /**
  * Write table content out to files in hdfs.
@@ -27,6 +29,7 @@ public class RichTsvImporterMapper extends TsvImporterMapper {
     private String separator;
     // Should skip bad lines
     private boolean skipBadLines;
+    private byte[] skipUntilSeparatorBytes;
     private Counter badLineCount;
 
     @Override
@@ -56,6 +59,11 @@ public class RichTsvImporterMapper extends TsvImporterMapper {
         parser = new RichImportTsv.RichTsvParser(conf.get(RichImportTsv.COLUMNS_CONF_KEY), separator);
         if (parser.getRowKeyColumnIndex() == -1) {
             throw new RuntimeException("No row key column specified");
+        }
+
+        String skipUntilSeparator = conf.get(RichImportTsv.SKIP_UNTIL_SEPARATOR_CONF_KEY);
+        if (skipUntilSeparator != null) {
+            skipUntilSeparatorBytes = Bytes.toBytes(skipUntilSeparator);
         }
     }
 
@@ -99,19 +107,33 @@ public class RichTsvImporterMapper extends TsvImporterMapper {
                 if (i == parser.getRowKeyColumnIndex()) {
                     continue;
                 }
+
+                int valueOffset = parsed.getColumnOffset(i);
+                int valueLength = parsed.getColumnLength(i);
+                if (skipUntilSeparatorBytes != null) {
+                    int originalValueOffset = valueOffset;
+                    int valueEndOffset = originalValueOffset + valueLength;
+                    int skipSeparatorStart = KMPMatcher.indexOf(lineBytes, originalValueOffset, skipUntilSeparatorBytes, valueEndOffset);
+                    if (skipSeparatorStart == KMPMatcher.FAILURE) {
+                        valueLength = 0;
+                    } else {
+                        valueOffset = skipSeparatorStart + skipUntilSeparatorBytes.length;
+                        valueLength = parsed.getColumnLength(i) - (valueOffset - originalValueOffset);
+                    }
+                }
+
                 KeyValue kv = new KeyValue(
                         lineBytes, parsed.getRowKeyOffset(), parsed.getRowKeyLength(),
                         parser.getFamily(i), 0, parser.getFamily(i).length,
                         parser.getQualifier(i), 0, parser.getQualifier(i).length,
                         ts,
                         KeyValue.Type.Put,
-                        lineBytes, parsed.getColumnOffset(i), parsed.getColumnLength(i));
-
+                        lineBytes, valueOffset, valueLength);
                 put.add(kv);
             }
-            
+
             context.write(rowKey, put);
-        
+
         } catch (RichImportTsv.RichTsvParser.BadTsvLineException badLine) {
             if (skipBadLines) {
                 handleBadLines(offset.get(), badLine.getMessage());

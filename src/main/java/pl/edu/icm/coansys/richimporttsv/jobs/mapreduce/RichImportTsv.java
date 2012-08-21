@@ -47,6 +47,7 @@ public class RichImportTsv extends ImportTsv {
     public final static String BULK_OUTPUT_CONF_KEY = "importtsv.bulk.output";
     public final static String COLUMNS_CONF_KEY = "importtsv.columns";
     public final static String SEPARATOR_CONF_KEY = "importtsv.separator";
+    public final static String SKIP_UNTIL_SEPARATOR_CONF_KEY = "importtsv.skip.until.separator";
     public final static String RECORD_SEPARATOR_CONF_KEY = "importtsv.record.separator";
     public final static String TIMESTAMP_CONF_KEY = "importtsv.timestamp";
     public final static String DEFAULT_SEPARATOR = "\t";
@@ -116,12 +117,12 @@ public class RichImportTsv extends ImportTsv {
             ArrayList<Integer> tabOffsets = new ArrayList<Integer>(families.length);
             int i = 0;
             while (i < length) {
-                i = KMPMatcher.indexOf(lineBytes, i, separatorBytes);
-                if (i != KMPMatcher.FAILURE) {
+                i = KMPMatcher.indexOf(lineBytes, i, separatorBytes, lineBytes.length);
+                if (i == KMPMatcher.FAILURE || i >= length) {
+                    break;
+                } else {
                     tabOffsets.add(i);
                     i += separatorBytes.length;
-                } else {
-                    break;
                 }
             }
 
@@ -252,6 +253,7 @@ public class RichImportTsv extends ImportTsv {
                 + "  -D" + SEPARATOR_CONF_KEY + "=| - eg separate on pipes instead of tabs\n"
                 + "  -D" + INPUT_FORMAT_CONF_KEY + "=my.InputFormat - A user-defined InputFormat to use instead of " + DEFAULT_INPUT_FORMAT.getName() + "\n"
                 + "  -D" + RECORD_SEPARATOR_CONF_KEY + "=# - eg separate records on # instead of new lines\n"
+                + "  -D" + SKIP_UNTIL_SEPARATOR_CONF_KEY + "= - (optional) skip part of the field and put remaining part into HBase cell" + "\n"
                 + "  -D" + TIMESTAMP_CONF_KEY + "=currentTimeAsLong - use the specified timestamp for the import\n"
                 + "  -D" + MAPPER_CONF_KEY + "=my.Mapper - A user-defined Mapper to use instead of " + DEFAULT_MAPPER.getName() + "\n";
 
@@ -265,20 +267,20 @@ public class RichImportTsv extends ImportTsv {
      * @throws Exception When running the job fails.
      */
     public static void main(String[] args) throws Exception {
-        
-        /*
-        String tableInitName = "test_import";
-        String inputFileName = "/home/akawa/Documents/git-projects/RichImportTsv/zipdir_out3";
 
-        args = new String[]{
-            "-D" + SEPARATOR_CONF_KEY + "=########",
-            "-D" + RECORD_SEPARATOR_CONF_KEY + "=@@@@@@@@",
-            "-D" + COLUMNS_CONF_KEY + "=HBASE_ROW_KEY,m:mproto,c:cproto",
-            tableInitName,
-            inputFileName
-        };
-        */
+/*        
+         String tableInitName = "enwiki";
+         String inputFileName = "/home/akawa/Documents/git-projects/RichImportTsv/src/test/resource/richinput/enwiki.dat";
 
+         args = new String[]{
+         "-D" + SEPARATOR_CONF_KEY + "=\n",
+         "-D" + RECORD_SEPARATOR_CONF_KEY + "=\n\n",
+         "-D" + SKIP_UNTIL_SEPARATOR_CONF_KEY + "= ",
+         "-D" + COLUMNS_CONF_KEY + "=HBASE_ROW_KEY,m:cat,m:im,m:main,m:talk,m:us,m:us_talk,m:oth,m:exter,m:templ,m:comm,m:minor,m:textdata",
+         tableInitName,
+         inputFileName
+         };
+*/
         main(HBaseConfiguration.create(), args);
     }
 
@@ -286,7 +288,7 @@ public class RichImportTsv extends ImportTsv {
         if (conf == null) {
             conf = HBaseConfiguration.create();
         }
-        
+
         String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
         if (otherArgs.length < 2) {
             usage("Wrong number of arguments: " + otherArgs.length);
